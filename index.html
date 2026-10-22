@@ -150,6 +150,10 @@ details[open] summary::after { content: "▴"; }
 }
 .settings-grid select { width: auto; text-align: left; }
 .settings-grid input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); justify-self: end; }
+.howto p, .howto ol { font-size: .9rem; line-height: 1.55; margin: 14px 0 0; }
+.howto ol { padding-left: 20px; }
+.howto li { margin-bottom: 6px; }
+.howto li::marker { color: var(--accent); font-weight: 700; }
 .warn {
   background: #fff3cd; color: #664d03; border: 1px solid #ffe69c;
   border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 14px; display: none;
@@ -244,6 +248,20 @@ details[open] summary::after { content: "▴"; }
     </details>
   </section>
 
+  <section class="card">
+    <details class="howto">
+      <summary>Le principe du Pomodoro</summary>
+      <p>Une méthode de gestion du temps créée par Francesco Cirillo à la fin des années 1980 : on travaille par blocs courts et focalisés, séparés par des pauses régulières. Son nom vient du minuteur de cuisine en forme de tomate (<i>pomodoro</i> en italien) qu'il utilisait.</p>
+      <ol>
+        <li><b>Choisis une tâche</b> et note-la dans le champ prévu.</li>
+        <li><b>Lance 25 minutes</b> de concentration, sans interruption : un seul sujet, notifications coupées.</li>
+        <li><b>Fais une pause courte</b> de 5 minutes : lève-toi, bois, étire-toi, évite les écrans.</li>
+        <li><b>Après 4 pomodoros</b>, prends une pause longue de 15 à 30 minutes.</li>
+      </ol>
+      <p>Si une distraction survient, note-la pour plus tard et reviens à ta tâche. Si tu es interrompu, le pomodoro est à recommencer. Les durées sont modifiables dans les réglages.</p>
+    </details>
+  </section>
+
   <p class="foot">
     Garde l'onglet ouvert (il peut rester en arrière-plan) pour recevoir les alertes.<br>
     Raccourci : <span class="kbd">Espace</span> pour démarrer / mettre en pause.<br>
@@ -256,7 +274,7 @@ details[open] summary::after { content: "▴"; }
   'use strict';
 
   /* ---------- Version (à mettre à jour à chaque modification) ---------- */
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.3.0';
   const APP_DATE = '2026-10-22';
 
   /* ---------- Constantes ---------- */
