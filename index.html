@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#e5533d" id="themeColor">
+<title>Pomodoro</title>
+<link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e5533d'/%3E%3Cpath d='M32 16v17l10 7' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #faf7f5;
+  --card: #ffffff;
+  --text: #2a2522;
+  --muted: #7d726c;
+  --line: #ece5e0;
+  --track: #f0e9e4;
+  --accent: #e5533d;
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1716;
+    --card: #252120;
+    --text: #f2ece8;
+    --muted: #a39892;
+    --line: #38312e;
+    --track: #342d2a;
+  }
+}
+body[data-phase="focus"] { --accent: #e5533d; }
+body[data-phase="short"] { --accent: #2f9e73; }
+body[data-phase="long"]  { --accent: #3b7dd8; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 40px;
+  transition: background .3s;
+}
+main { width: 100%; max-width: 440px; }
+h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px; text-align: center; letter-spacing: .02em; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: var(--track);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 9px 4px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+.ring-wrap { position: relative; width: 260px; height: 260px; margin: 0 auto 14px; }
+.ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--track); stroke-width: 12; }
+.ring-fg { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; transition: stroke .3s; }
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+#time { font-size: 3.4rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+#phaseLabel { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 18px; min-height: 12px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--track); border: 2px solid transparent; }
+.dot.on { background: var(--accent); }
+.dot.cur { border-color: var(--accent); }
+.task {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: .9rem;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.task:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.controls { display: flex; gap: 10px; }
+.btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: .95rem;
+  cursor: pointer;
+}
+.btn:hover { background: var(--track); }
+.btn.primary { flex: 1; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; font-size: 1.05rem; }
+.btn.primary:hover { filter: brightness(1.07); background: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stats-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.stats-head strong { font-size: 1.05rem; }
+.stats-head span { color: var(--muted); font-size: .85rem; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 70px; }
+.week .col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.week .bar { width: 100%; max-width: 26px; background: var(--accent); opacity: .85; border-radius: 5px 5px 2px 2px; min-height: 3px; }
+.week .bar.zero { background: var(--track); opacity: 1; }
+.week .d { font-size: .7rem; color: var(--muted); text-transform: uppercase; }
+.week .col.today .d { color: var(--accent); font-weight: 700; }
+.notif-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pill { font-size: .85rem; color: var(--muted); }
+.pill b { color: var(--text); font-weight: 600; }
+.small-btns { display: flex; gap: 8px; }
+.small-btns .btn { padding: 7px 12px; font-size: .85rem; }
+details summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+details summary::-webkit-details-marker { display: none; }
+details summary::after { content: "▾"; color: var(--muted); }
+details[open] summary::after { content: "▴"; }
+.settings-grid { display: grid; grid-template-columns: 1fr auto; gap: 12px 10px; align-items: center; margin-top: 16px; font-size: .92rem; }
+.settings-grid input[type=number], .settings-grid select {
+  width: 84px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font: inherit;
+  text-align: right;
+}
+.settings-grid select { width: auto; text-align: left; }
+.settings-grid input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); justify-self: end; }
+.warn {
+  background: #fff3cd; color: #664d03; border: 1px solid #ffe69c;
+  border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 14px; display: none;
+}
+@media (prefers-color-scheme: dark) { .warn { background: #3d3207; color: #ffe69c; border-color: #665210; } }
+.foot { color: var(--muted); font-size: .78rem; text-align: center; line-height: 1.5; margin-top: 6px; }
+.kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: .75rem; }
+</style>
+</head>
+<body data-phase="focus">
+<main>
+  <h1>Compteur Pomodoro</h1>
+
+  <div class="warn" id="secureWarn">
+    ⚠️ Cette page n'est pas servie en HTTPS : les notifications du navigateur risquent de ne pas fonctionner. Héberge-la sur GitHub Pages (ou ouvre-la via <code>localhost</code>).
+  </div>
+
+  <section class="card">
+    <div class="tabs" role="tablist" aria-label="Phase">
+      <button role="tab" data-phase="focus">Concentration</button>
+      <button role="tab" data-phase="short">Pause courte</button>
+      <button role="tab" data-phase="long">Pause longue</button>
+    </div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 260 260" aria-hidden="true">
+        <circle class="ring-bg" cx="130" cy="130" r="116"></circle>
+        <circle class="ring-fg" id="ring" cx="130" cy="130" r="116"></circle>
+      </svg>
+      <div class="ring-center">
+        <div id="time" role="timer" aria-live="off">25:00</div>
+        <div id="phaseLabel">Concentration</div>
+      </div>
+    </div>
+
+    <div class="dots" id="dots" aria-label="Progression du cycle"></div>
+
+    <input class="task" id="task" type="text" maxlength="80" placeholder="Sur quoi travailles-tu ? (facultatif)" autocomplete="off">
+
+    <div class="controls">
+      <button class="btn" id="reset" title="Réinitialiser la phase">↺</button>
+      <button class="btn primary" id="toggle">Démarrer</button>
+      <button class="btn" id="skip" title="Passer à la phase suivante">⏭</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="stats-head">
+      <strong id="todayCount">0 pomodoro aujourd'hui</strong>
+      <span id="todayTime">0 min</span>
+    </div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <section class="card">
+    <div class="notif-row">
+      <div class="pill">Notifications : <b id="nstat">…</b></div>
+      <div class="small-btns">
+        <button class="btn" id="nask">Autoriser</button>
+        <button class="btn" id="ntest">Tester</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Réglages</summary>
+      <div class="settings-grid">
+        <label for="s-focus">Concentration (min)</label>
+        <input type="number" id="s-focus" min="1" max="180" step="1">
+        <label for="s-short">Pause courte (min)</label>
+        <input type="number" id="s-short" min="1" max="60" step="1">
+        <label for="s-long">Pause longue (min)</label>
+        <input type="number" id="s-long" min="1" max="120" step="1">
+        <label for="s-cycles">Pomodoros avant pause longue</label>
+        <input type="number" id="s-cycles" min="1" max="12" step="1">
+        <label for="s-warn">Préavis avant la fin</label>
+        <select id="s-warn">
+          <option value="0">Aucun</option>
+          <option value="30">30 secondes</option>
+          <option value="60">1 minute</option>
+          <option value="120">2 minutes</option>
+          <option value="300">5 minutes</option>
+        </select>
+        <label for="s-auto">Enchaîner automatiquement les phases</label>
+        <input type="checkbox" id="s-auto">
+        <label for="s-notif">Notifications du navigateur</label>
+        <input type="checkbox" id="s-notif">
+        <label for="s-sound">Son d'alerte</label>
+        <input type="checkbox" id="s-sound">
+      </div>
+    </details>
+  </section>
+
+  <p class="foot">
+    Garde l'onglet ouvert (il peut rester en arrière-plan) pour recevoir les alertes.<br>
+    Raccourci : <span class="kbd">Espace</span> pour démarrer / mettre en pause.<br>
+    <span id="version"></span>
+  </p>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Version (à mettre à jour à chaque modification) ---------- */
+  const APP_VERSION = '1.1.0';
+  const APP_DATE = '2026-10-22';
+
+  /* ---------- Constantes ---------- */
+  const $ = s => document.querySelector(s);
+  $('#version').textContent = 'Version ' + APP_VERSION + ' · ' +
+    new Date(APP_DATE + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const LS_SETTINGS = 'pomodoro.settings';
+  const LS_STATE = 'pomodoro.state';
+  const LS_STATS = 'pomodoro.stats';
+  const DEFAULTS = { focus: 25, short: 5, long: 15, cycles: 4, warn: 60, auto: true, notif: true, sound: true };
+  const LABELS = { focus: 'Concentration', short: 'Pause courte', long: 'Pause longue' };
+  const EMOJI = { focus: '🍅', short: '☕', long: '🌴' };
+  const COLORS = { focus: '#e5533d', short: '#2f9e73', long: '#3b7dd8' };
+  const RADIUS = 116;
+  const CIRC = 2 * Math.PI * RADIUS;
+
+  /* ---------- Stockage ---------- */
+  function read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? Object.assign({}, fallback, JSON.parse(raw)) : { ...fallback };
+    } catch (e) { return { ...fallback }; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* stockage indisponible */ }
+  }
+
+  const settings = read(LS_SETTINGS, DEFAULTS);
+  const state = read(LS_STATE, {
+    phase: 'focus', running: false, endAt: 0,
+    remaining: settings.focus * 60000, done: 0, warned: false, task: ''
+  });
+  let stats = {};
+  try { stats = JSON.parse(localStorage.getItem(LS_STATS) || '{}') || {}; } catch (e) { stats = {}; }
+
+  const saveState = () => write(LS_STATE, state);
+  const saveSettings = () => write(LS_SETTINGS, settings);
+  const saveStats = () => write(LS_STATS, stats);
+
+  const dur = phase => settings[phase] * 60000;
+
+  /* ---------- Utilitaires ---------- */
+  const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function fmtMinutes(min) {
+    min = Math.round(min);
+    if (min < 60) return min + ' min';
+    const h = Math.floor(min / 60), m = min % 60;
+    return h + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '');
+  }
+  function fmtWarn(sec) {
+    if (sec < 60) return sec + ' secondes';
+    const m = sec / 60;
+    return m === 1 ? '1 minute' : m + ' minutes';
+  }
+  // Favicon : disque de la couleur de la phase avec aiguilles d'horloge
+  const faviconIcon = color => 'data:image/svg+xml,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='" + color + "'/>" +
+    "<path d='M32 16v17l10 7' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+  );
+  const emojiIcon = emoji => 'data:image/svg+xml,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>" + emoji + '</text></svg>'
+  );
+
+  /* ---------- Son ---------- */
+  let actx = null;
+  function initAudio() {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+    } catch (e) { /* audio indisponible */ }
+  }
+  function chime(kind) {
+    if (!settings.sound || !actx) return;
+    const notes = kind === 'warn' ? [660] : [784, 988, 1175];
+    const t0 = actx.currentTime;
+    notes.forEach((freq, i) => {
+      const osc = actx.createOscillator();
+      const gain = actx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = t0 + i * 0.22;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
+      osc.connect(gain).connect(actx.destination);
+      osc.start(start);
+      osc.stop(start + 0.45);
+    });
+    if (navigator.vibrate) { try { navigator.vibrate(kind === 'warn' ? [150] : [200, 100, 200]); } catch (e) {} }
+  }
+
+  /* ---------- Notifications ---------- */
+  const notifSupported = 'Notification' in window;
+
+  function renderNotifStatus() {
+    const el = $('#nstat');
+    const askBtn = $('#nask');
+    const testBtn = $('#ntest');
+    if (!notifSupported) {
+      el.textContent = 'non supportées par ce navigateur';
+      askBtn.style.display = 'none';
+      testBtn.style.display = 'none';
+      return;
+    }
+    const p = Notification.permission;
+    if (p === 'granted') {
+      el.textContent = settings.notif ? 'activées ✓' : 'autorisées (désactivées dans les réglages)';
+      askBtn.style.display = 'none';
+      testBtn.style.display = '';
+    } else if (p === 'denied') {
+      el.textContent = 'bloquées — à autoriser dans les paramètres du site';
+      askBtn.style.display = 'none';
+      testBtn.style.display = 'none';
+    } else {
+      el.textContent = 'pas encore autorisées';
+      askBtn.style.display = '';
+      testBtn.style.display = 'none';
+    }
+  }
+
+  async function askPermission() {
+    if (!notifSupported) return;
+    if (Notification.permission === 'default') {
+      try { await Notification.requestPermission(); } catch (e) { /* ignoré */ }
+    }
+    renderNotifStatus();
+  }
+
+  function notify(title, body, emoji) {
+    if (!settings.notif || !notifSupported || Notification.permission !== 'granted') return;
+    const opts = { body, tag: 'pomodoro', renotify: true, icon: emojiIcon(emoji || '🍅') };
+    try {
+      const n = new Notification(title, opts);
+      n.onclick = () => { window.focus(); n.close(); };
+    } catch (e) {
+      // Certains navigateurs mobiles exigent un service worker
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(r => r && r.showNotification(title, opts)).catch(() => {});
+      }
+    }
+  }
+
+  /* ---------- Statistiques ---------- */
+  function recordFocus(seconds) {
+    const k = dayKey(new Date());
+    const day = stats[k] || { count: 0, seconds: 0 };
+    day.count += 1;
+    day.seconds += seconds;
+    stats[k] = day;
+    // On ne garde que ~60 jours
+    const keys = Object.keys(stats).sort();
+    while (keys.length > 60) delete stats[keys.shift()];
+    saveStats();
+  }
+
+  /* ---------- Logique du minuteur ---------- */
+  function getRemaining() {
+    return state.running ? Math.max(0, state.endAt - Date.now()) : state.remaining;
+  }
+
+  function setPhase(phase, autostart) {
+    state.phase = phase;
+    state.remaining = dur(phase);
+    state.warned = false;
+    if (autostart) {
+      state.running = true;
+      state.endAt = Date.now() + state.remaining;
+    } else {
+      state.running = false;
+      state.endAt = 0;
+    }
+    saveState();
+    render();
+  }
+
+  function start() {
+    initAudio();
+    if (settings.notif && notifSupported && Notification.permission === 'default') askPermission();
+    if (state.running) return;
+    if (state.remaining <= 0) state.remaining = dur(state.phase);
+    state.running = true;
+    state.endAt = Date.now() + state.remaining;
+    saveState();
+    render();
+  }
+
+  function pause() {
+    if (!state.running) return;
+    state.remaining = Math.max(0, state.endAt - Date.now());
+    state.running = false;
+    state.endAt = 0;
+    saveState();
+    render();
+  }
+
+  function reset() {
+    state.running = false;
+    state.endAt = 0;
+    state.remaining = dur(state.phase);
+    state.warned = false;
+    saveState();
+    render();
+  }
+
+  function skip() {
+    if (state.phase === 'focus') {
+      setPhase(state.done >= settings.cycles ? 'long' : 'short', false);
+    } else {
+      if (state.phase === 'long') state.done = 0;
+      setPhase('focus', false);
+    }
+  }
+
+  // away = la phase s'est terminée alors que la page était fermée
+  function complete(away) {
+    const prev = state.phase;
+    let next, title, body, emoji;
+
+    if (prev === 'focus') {
+      recordFocus(settings.focus * 60);
+      state.done += 1;
+      next = state.done >= settings.cycles ? 'long' : 'short';
+      title = '🍅 Pomodoro terminé !';
+      body = 'Bien joué. Place à une ' + (next === 'long' ? 'pause longue' : 'pause courte') + ' de ' + settings[next] + ' min.';
+      emoji = '🍅';
+    } else {
+      if (prev === 'long') state.done = 0;
+      next = 'focus';
+      title = prev === 'long' ? '🌴 Pause longue terminée' : '☕ Pause terminée';
+      body = "C'est reparti pour " + settings.focus + ' min de concentration.';
+      emoji = prev === 'long' ? '🌴' : '☕';
+    }
+
+    const autostart = !away && settings.auto;
+    if (!autostart) body += ' Appuie sur Démarrer quand tu es prêt.';
+
+    if (!away) {
+      notify(title, body, emoji);
+      chime('end');
+    }
+    setPhase(next, autostart);
+  }
+
+  function tick() {
+    if (!state.running) return;
+    const rem = state.endAt - Date.now();
+
+    // Préavis avant la fin
+    const warnMs = settings.warn * 1000;
+    if (warnMs > 0 && !state.warned && rem > 0 && rem <= warnMs && dur(state.phase) > warnMs * 1.5) {
+      state.warned = true;
+      saveState();
+      const what = state.phase === 'focus' ? 'La session de concentration' : 'La pause';
+      notify('⏳ Plus que ' + fmtWarn(settings.warn), what + ' se termine bientôt.', EMOJI[state.phase]);
+      chime('warn');
+    }
+
+    if (rem <= 0) {
+      complete(false);
+      return;
+    }
+    render();
+  }
+
+  /* ---------- Affichage ---------- */
+  const ring = $('#ring');
+  ring.style.strokeDasharray = CIRC;
+  let lastPhaseRendered = null;
+
+  function renderDots() {
+    const box = $('#dots');
+    let html = '';
+    for (let i = 0; i < settings.cycles; i++) {
+      const cls = 'dot' + (i < state.done ? ' on' : '') + (state.phase === 'focus' && i === state.done ? ' cur' : '');
+      html += '<span class="' + cls + '"></span>';
+    }
+    box.innerHTML = html;
+  }
+
+  function renderStats() {
+    const today = stats[dayKey(new Date())] || { count: 0, seconds: 0 };
+    $('#todayCount').textContent = today.count + (today.count > 1 ? ' pomodoros' : ' pomodoro') + " aujourd'hui";
+    $('#todayTime').textContent = fmtMinutes(today.seconds / 60) + ' de concentration';
+
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    const counts = days.map(d => (stats[dayKey(d)] || { count: 0 }).count);
+    const max = Math.max(1, ...counts);
+    $('#week').innerHTML = days.map((d, i) => {
+      const h = counts[i] ? Math.max(8, Math.round(counts[i] / max * 44)) : 3;
+      const label = d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '').slice(0, 3);
+      return '<div class="col' + (i === 6 ? ' today' : '') + '" title="' + counts[i] + ' pomodoro(s)">' +
+        '<div class="bar' + (counts[i] ? '' : ' zero') + '" style="height:' + h + 'px"></div>' +
+        '<div class="d">' + label + '</div></div>';
+    }).join('');
+  }
+
+  function render() {
+    const total = dur(state.phase);
+    const rem = getRemaining();
+    const secs = Math.ceil(rem / 1000);
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+
+    $('#time').textContent = mm + ':' + ss;
+    $('#phaseLabel').textContent = LABELS[state.phase];
+    const frac = total > 0 ? Math.min(1, rem / total) : 0;
+    ring.style.strokeDashoffset = CIRC * (1 - frac);
+
+    document.title = state.running ? mm + ':' + ss + ' · ' + LABELS[state.phase] : 'Pomodoro';
+
+    const toggle = $('#toggle');
+    toggle.textContent = state.running ? 'Pause' : (rem < total ? 'Reprendre' : 'Démarrer');
+
+    if (lastPhaseRendered !== state.phase) {
+      lastPhaseRendered = state.phase;
+      document.body.dataset.phase = state.phase;
+      $('#favicon').href = faviconIcon(COLORS[state.phase]);
+      $('#themeColor').content = COLORS[state.phase];
+      document.querySelectorAll('.tabs button').forEach(b => {
+        b.setAttribute('aria-selected', b.dataset.phase === state.phase ? 'true' : 'false');
+      });
+      renderDots();
+      renderStats();
+    }
+  }
+
+  function renderAll() {
+    lastPhaseRendered = null;
+    renderDots();
+    renderStats();
+    render();
+  }
+
+  /* ---------- Événements ---------- */
+  $('#toggle').addEventListener('click', () => (state.running ? pause() : start()));
+  $('#reset').addEventListener('click', reset);
+  $('#skip').addEventListener('click', skip);
+
+  document.querySelectorAll('.tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.dataset.phase === state.phase) return;
+      if (state.running && !confirm('Changer de phase ? Le minuteur en cours sera arrêté.')) return;
+      setPhase(b.dataset.phase, false);
+    });
+  });
+
+  $('#task').value = state.task || '';
+  $('#task').addEventListener('input', e => { state.task = e.target.value; saveState(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.code !== 'Space') return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'button') return;
+    e.preventDefault();
+    state.running ? pause() : start();
+  });
+
+  $('#nask').addEventListener('click', () => { initAudio(); askPermission(); });
+  $('#ntest').addEventListener('click', () => {
+    initAudio();
+    notify('🔔 Test de notification', 'Tout fonctionne : tu seras prévenu à la fin de chaque phase.', '🍅');
+    chime('end');
+  });
+
+  // Réglages
+  const numFields = [['s-focus', 'focus', 1, 180], ['s-short', 'short', 1, 60], ['s-long', 'long', 1, 120], ['s-cycles', 'cycles', 1, 12]];
+  numFields.forEach(([id, key, min, max]) => {
+    const el = document.getElementById(id);
+    el.value = settings[key];
+    el.addEventListener('change', () => {
+      let v = parseInt(el.value, 10);
+      if (isNaN(v)) v = DEFAULTS[key];
+      v = Math.min(max, Math.max(min, v));
+      el.value = v;
+      settings[key] = v;
+      saveSettings();
+      if (key === 'cycles') {
+        if (state.done > v) state.done = v;
+        saveState();
+      }
+      if (!state.running && key === state.phase) state.remaining = dur(state.phase);
+      saveState();
+      renderAll();
+    });
+  });
+
+  const warnSel = $('#s-warn');
+  warnSel.value = String(settings.warn);
+  warnSel.addEventListener('change', () => { settings.warn = parseInt(warnSel.value, 10) || 0; saveSettings(); });
+
+  [['s-auto', 'auto'], ['s-sound', 'sound'], ['s-notif', 'notif']].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    el.checked = !!settings[key];
+    el.addEventListener('change', () => {
+      settings[key] = el.checked;
+      saveSettings();
+      if (key === 'notif' && el.checked) { initAudio(); askPermission(); }
+      renderNotifStatus();
+    });
+  });
+
+  /* ---------- Démarrage ---------- */
+  if (!window.isSecureContext) $('#secureWarn').style.display = 'block';
+
+  // La phase a pu se terminer pendant que la page était fermée
+  if (state.running && state.endAt <= Date.now()) complete(true);
+
+  renderNotifStatus();
+  renderAll();
+
+  // Horloge : un Worker n'est pas ralenti dans un onglet en arrière-plan
+  let ticker = null;
+  try {
+    const blob = new Blob(['setInterval(function(){postMessage(1)},250)'], { type: 'text/javascript' });
+    ticker = new Worker(URL.createObjectURL(blob));
+    ticker.onmessage = tick;
+  } catch (e) {
+    setInterval(tick, 250);
+  }
+  document.addEventListener('visibilitychange', tick);
+})();
+</script>
+</body>
+</html>
