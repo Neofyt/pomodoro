@@ -1,12 +1,12 @@
 /* Service worker du Pomodoro : fonctionnement hors ligne + notifications.
-   Penser à faire correspondre VERSION avec APP_VERSION de pomodoro.html
+   Penser à faire correspondre VERSION avec APP_VERSION de index.html
    à chaque nouvelle version : l'ancien cache est alors supprimé. */
 const VERSION = '1.4.0';
 const CACHE = 'pomodoro-' + VERSION;
 
 const ASSETS = [
   './',
-  './pomodoro.html',
+  './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -56,7 +56,7 @@ self.addEventListener('notificationclick', event => {
       for (const c of list) {
         if ('focus' in c) return c.focus();
       }
-      return self.clients.openWindow('./pomodoro.html');
+      return self.clients.openWindow('./index.html');
     })
   );
 });
