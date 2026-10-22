@@ -164,7 +164,7 @@ details[open] summary::after { content: "▴"; }
   <h1>Compteur Pomodoro</h1>
 
   <div class="warn" id="secureWarn">
-    ⚠️ Cette page n'est pas servie en HTTPS : les notifications du navigateur risquent de ne pas fonctionner. Héberge-la sur GitHub Pages (ou ouvre-la via <code>localhost</code>).
+    Cette page n'est pas servie en HTTPS : les notifications du navigateur risquent de ne pas fonctionner. Héberge-la sur GitHub Pages (ou ouvre-la via <code>localhost</code>).
   </div>
 
   <section class="card">
@@ -192,7 +192,7 @@ details[open] summary::after { content: "▴"; }
     <div class="controls">
       <button class="btn" id="reset" title="Réinitialiser la phase">↺</button>
       <button class="btn primary" id="toggle">Démarrer</button>
-      <button class="btn" id="skip" title="Passer à la phase suivante">⏭</button>
+      <button class="btn" id="skip" title="Passer à la phase suivante" aria-label="Passer à la phase suivante"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M5 5l9 7-9 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg></button>
     </div>
   </section>
 
@@ -256,7 +256,7 @@ details[open] summary::after { content: "▴"; }
   'use strict';
 
   /* ---------- Version (à mettre à jour à chaque modification) ---------- */
-  const APP_VERSION = '1.1.0';
+  const APP_VERSION = '1.2.0';
   const APP_DATE = '2026-10-22';
 
   /* ---------- Constantes ---------- */
@@ -268,7 +268,6 @@ details[open] summary::after { content: "▴"; }
   const LS_STATS = 'pomodoro.stats';
   const DEFAULTS = { focus: 25, short: 5, long: 15, cycles: 4, warn: 60, auto: true, notif: true, sound: true };
   const LABELS = { focus: 'Concentration', short: 'Pause courte', long: 'Pause longue' };
-  const EMOJI = { focus: '🍅', short: '☕', long: '🌴' };
   const COLORS = { focus: '#e5533d', short: '#2f9e73', long: '#3b7dd8' };
   const RADIUS = 116;
   const CIRC = 2 * Math.PI * RADIUS;
@@ -315,9 +314,6 @@ details[open] summary::after { content: "▴"; }
   const faviconIcon = color => 'data:image/svg+xml,' + encodeURIComponent(
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='" + color + "'/>" +
     "<path d='M32 16v17l10 7' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/></svg>"
-  );
-  const emojiIcon = emoji => 'data:image/svg+xml,' + encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>" + emoji + '</text></svg>'
   );
 
   /* ---------- Son ---------- */
@@ -385,9 +381,9 @@ details[open] summary::after { content: "▴"; }
     renderNotifStatus();
   }
 
-  function notify(title, body, emoji) {
+  function notify(title, body, phase) {
     if (!settings.notif || !notifSupported || Notification.permission !== 'granted') return;
-    const opts = { body, tag: 'pomodoro', renotify: true, icon: emojiIcon(emoji || '🍅') };
+    const opts = { body, tag: 'pomodoro', renotify: true, icon: faviconIcon(COLORS[phase] || COLORS.focus) };
     try {
       const n = new Notification(title, opts);
       n.onclick = () => { window.focus(); n.close(); };
@@ -473,28 +469,26 @@ details[open] summary::after { content: "▴"; }
   // away = la phase s'est terminée alors que la page était fermée
   function complete(away) {
     const prev = state.phase;
-    let next, title, body, emoji;
+    let next, title, body;
 
     if (prev === 'focus') {
       recordFocus(settings.focus * 60);
       state.done += 1;
       next = state.done >= settings.cycles ? 'long' : 'short';
-      title = '🍅 Pomodoro terminé !';
+      title = 'Pomodoro terminé !';
       body = 'Bien joué. Place à une ' + (next === 'long' ? 'pause longue' : 'pause courte') + ' de ' + settings[next] + ' min.';
-      emoji = '🍅';
     } else {
       if (prev === 'long') state.done = 0;
       next = 'focus';
-      title = prev === 'long' ? '🌴 Pause longue terminée' : '☕ Pause terminée';
+      title = prev === 'long' ? 'Pause longue terminée' : 'Pause terminée';
       body = "C'est reparti pour " + settings.focus + ' min de concentration.';
-      emoji = prev === 'long' ? '🌴' : '☕';
     }
 
     const autostart = !away && settings.auto;
     if (!autostart) body += ' Appuie sur Démarrer quand tu es prêt.';
 
     if (!away) {
-      notify(title, body, emoji);
+      notify(title, body, next);
       chime('end');
     }
     setPhase(next, autostart);
@@ -510,7 +504,7 @@ details[open] summary::after { content: "▴"; }
       state.warned = true;
       saveState();
       const what = state.phase === 'focus' ? 'La session de concentration' : 'La pause';
-      notify('⏳ Plus que ' + fmtWarn(settings.warn), what + ' se termine bientôt.', EMOJI[state.phase]);
+      notify('Plus que ' + fmtWarn(settings.warn), what + ' se termine bientôt.', state.phase);
       chime('warn');
     }
 
@@ -622,7 +616,7 @@ details[open] summary::after { content: "▴"; }
   $('#nask').addEventListener('click', () => { initAudio(); askPermission(); });
   $('#ntest').addEventListener('click', () => {
     initAudio();
-    notify('🔔 Test de notification', 'Tout fonctionne : tu seras prévenu à la fin de chaque phase.', '🍅');
+    notify('Test de notification', 'Tout fonctionne : tu seras prévenu à la fin de chaque phase.', 'focus');
     chime('end');
   });
 
