@@ -1,7 +1,7 @@
 /* Service worker du Pomodoro : fonctionnement hors ligne + notifications.
    Penser à faire correspondre VERSION avec APP_VERSION de index.html
    à chaque nouvelle version : l'ancien cache est alors supprimé. */
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const CACHE = 'pomodoro-' + VERSION;
 
 const ASSETS = [
@@ -44,7 +44,7 @@ self.addEventListener('fetch', event => {
         }
         return res;
       })
-      .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match('./pomodoro.html')))
+      .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match('./index.html')))
   );
 });
 
@@ -56,7 +56,7 @@ self.addEventListener('notificationclick', event => {
       for (const c of list) {
         if ('focus' in c) return c.focus();
       }
-      return self.clients.openWindow('./index.html');
+      return self.clients.openWindow('./');
     })
   );
 });

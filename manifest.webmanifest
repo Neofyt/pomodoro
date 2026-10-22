@@ -3,7 +3,7 @@
   "short_name": "Pomodoro",
   "description": "Compteur Pomodoro avec notifications à chaque phase",
   "lang": "fr",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
